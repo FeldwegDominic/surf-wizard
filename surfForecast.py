@@ -1,4 +1,5 @@
 from scraper import Scraper  # Assumes your base class is in scraper.py
+from datetime import datetime
 
 class SurfForecastScraper(Scraper):
     def __init__(self, base_url, headers=None):
@@ -8,6 +9,11 @@ class SurfForecastScraper(Scraper):
         soup = self.scrape(path)
         if not soup:
             return []
+
+        # Get today's date info as fallback strings
+        today = datetime.now()
+        today_day_name = today.strftime("%A")  # e.g. "Wednesday"
+        today_day_number = today.strftime("%d")  # e.g. "13"
 
         # Extract day cells from the header row
         day_cells = soup.select("tr.forecast-table__row.forecast-table-days > td.forecast-table-days__cell")
@@ -19,16 +25,12 @@ class SurfForecastScraper(Scraper):
             day_name_div = cell.select_one("div.forecast-table__value.forecast-table-days__content > div:nth-child(1)")
             day_number_div = cell.select_one("div.forecast-table__value.forecast-table-days__content > div:nth-child(2)")
 
-            if not day_name_div or not day_number_div:
-                continue  # skip empty or locked days
+            day_name = day_name_div.get_text(strip=True) if day_name_div else today_day_name
+            day_number = day_number_div.get_text(strip=True) if day_number_div else today_day_number
 
-            day_name = day_name_div.get_text(strip=True)
-            day_number = day_number_div.get_text(strip=True)
-
-            # Just combine as a string here, e.g. "Wednesday 13"
             date_str = f"{day_name} {day_number}"
 
-            # Repeat the date string colspan times to match timeslots
+            # Repeat date string colspan times to match timeslots
             date_list.extend([date_str] * colspan)
 
         # Extract times and energies
